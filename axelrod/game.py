@@ -22,6 +22,6 @@ class Game(object):
 
         Returns the appropriate score (as a tuple) from the scores dictionary
         for a given pair of plays (passed in as a tuple).
-        e.g. score(('C', 'C')) returns (2, 2)
+        e.g. score(('C', 'C')) returns (3, 3)
         """
         return self.scores[pair]

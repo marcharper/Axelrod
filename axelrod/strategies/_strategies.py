@@ -4,6 +4,7 @@ from averagecopier import *
 from cooperator import *
 from darwin import *
 from defector import *
+from detector import *
 from forgiver import *
 from geller import *
 from gobymajority import *
@@ -82,6 +83,7 @@ ordinary_strategies = [
     Retaliate2,
     Retaliate3,
     RiskyQLearner,
+    ShenanigansDetector,
     Shubik,
     SoftJoss,
     SneakyTitForTat,
