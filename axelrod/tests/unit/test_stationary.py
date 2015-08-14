@@ -144,5 +144,5 @@ class TestStationaryMaxvsTFT(TestHeadsUp):
 class TestStationaryMaxvsALLC(TestHeadsUp):
     """Test TFT vs WSLS"""
     def test_rounds(self):
-        outcomes = [(C, C)] * 15 + [(D, C)] * 20
+        outcomes = [(C, C)] * 15 + [(D, C)]
         self.versus_test(axelrod.StationaryMax, axelrod.Cooperator, outcomes)

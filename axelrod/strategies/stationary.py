@@ -123,6 +123,7 @@ def compute_response_four_vector(opponent_four_vector, mode='t', maxfun=100):
     (R, P, S, T) = game.RPST()
     payoffs = numpy.array([R, S, T, P])
 
+    # Perturb to eliminate corner case computations 
     opponent_four_vector = perturb(numpy.array(opponent_four_vector))
 
     if mode == 't': # Maximize score
@@ -138,6 +139,9 @@ def compute_response_four_vector(opponent_four_vector, mode='t', maxfun=100):
                                 accuracy=1e-6, ftol=1e-4)
     return p
 
+
+# The initial play phase needs tweaking
+# Look for "cooperation-enforcers" like TFT and don't defect against them
 
 class StationaryMax(Player):
     """
@@ -163,6 +167,9 @@ class StationaryMax(Player):
         self._response_four_vector = None
         self.mode = mode
         self.stochastic = True
+        self.probing = False
+        self.isTFT = False
+        self._memory_depth = 30
 
     def set_four_vector(self, vector, response=False):
         keys = [(C, C), (C, D), (D, C), (D, D)]
@@ -180,19 +187,57 @@ class StationaryMax(Player):
             four_vector.append(coop)
         return four_vector
 
+    def update_play_counts(self):
+        last_context = (self.history[-2], opponent.history[-2])
+        last_round = (self.history[-1], opponent.history[-1])
+        self.play_counts[last_context] += 1
+        if last_round[1] == 'C':
+            self.play_cooperations[last_context] += 1
+        # Just track the last `self._memory_depth` rounds, so erase the 
+        # trailing play
+        if len(self.history) > self._memory_depth:
+            d = self._memory_depth
+            last_context = (self.history[-(d+1)], opponent.history[-(d+1)])
+            last_round = (self.history[-d], opponent.history[-d])
+            self.play_counts[last_context] -= 1
+            if last_round[1] == 'C':
+                self.play_cooperations[last_context] -= 1
+
     def strategy(self, opponent):
         round_number = len(self.history)
-        # Update play play counts
-        if len(self.history) > 1:
-            last_context = (self.history[-2], opponent.history[-2])
-            last_round = (self.history[-1], opponent.history[-1])
-            self.play_counts[last_context] += 1
-            if last_round[1] == 'C':
-                self.play_cooperations[last_context] += 1
         if not round_number:
             return self._initial
-        if round_number >= max(self.tournament_length // 20, 15):
-            # Compute the response strategy
+        # Update play play counts
+        if len(self.history) > 1:
+            self.update_play_counts()
+        phase_one_end = max(self.tournament_length // 20, 15)
+        if round_number < phase_one_end:
+            p = self._four_vector[(self.history[-1], opponent.history[-1])]
+            return random_choice(p)
+        # After the initial phase, determine if we're playing against a
+        # strategy that tries to enforce cooperation.
+        if round_number == phase_one_end:
+            if opponent.defections == 0:
+                # Try a defection
+                self.probing = True
+                return 'D'
+        if (round_number == phase_one_end + 1) and (self.probing):
+            # Apologize for defecting
+            return 'C'
+        if (round_number == phase_one_end + 2) and (self.probing):
+            # Apologize for defecting again (to see if opponent switches
+            # back to cooperating
+            return 'C'
+        if (round_number == phase_one_end + 3) and (self.probing):
+            if opponent.history[:-2] == ['D', 'C']:
+                # Opponent enforces cooperation, play TFT
+                self.isTFT == True
+            self.probing == False
+        # Final Phase
+        if self.isTFT:
+            return 'D' if opponent.history[-1:] == ['D'] else 'C'
+        else:
+            # Compute the optimal response strategy
             opponent_four_vector = self.opponent_four_vector()
             mod = self.tournament_length // 20
             # This is only to reduce the CPU footprint, in a competitive tournament
@@ -201,17 +246,15 @@ class StationaryMax(Player):
                 response_vector = compute_response_four_vector(opponent_four_vector,
                                                             mode=self.mode)
                 self.set_four_vector(response_vector, response=True)
-            p = self._response_four_vector[(self.history[-1], opponent.history[-1])]
-            return random_choice(p)
-        else:
-            p = self._four_vector[(self.history[-1], opponent.history[-1])]
-            return random_choice(p)
+        p = self._response_four_vector[(self.history[-1], opponent.history[-1])]
+        return random_choice(p)
 
     def reset(self):
         Player.reset(self)
         self.play_counts = defaultdict(int)
         self._response_four_vector = None
-
+        self.probing = False
+        self.isTFT = False
 
 class StationaryMaxDiff(StationaryMax):
 
