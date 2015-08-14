@@ -6,7 +6,7 @@ from numpy.testing import assert_array_equal, assert_array_almost_equal
 
 import axelrod
 from axelrod import Game, simulate_play
-from .test_player import TestPlayer, test_four_vector
+from .test_player import TestHeadsUp, TestPlayer, test_four_vector
 
 from axelrod.strategies.stationary import *
 
@@ -19,7 +19,7 @@ payoffs = numpy.array([R, S, T, P])
 class TestStationaryFunctions(unittest.TestCase):
 
     def test_stationary(self):
-        ep = 0.05
+        ep = 0.01
         vec = [1. - ep, ep, 1. - ep, ep]
 
         # Test approx_stationary
@@ -42,46 +42,68 @@ class TestStationaryFunctions(unittest.TestCase):
 
     def test_response(self):
         vec = [1, 1, 1, 1]
-        expected_response = [0, 0.5, 0, 0.5]
+        expected_response = [0, 0.8, 0, 0]
         response = compute_response_four_vector(vec, mode='t')
-        assert_array_almost_equal(response, expected_response)
+        assert_array_almost_equal(response, expected_response, decimal=2)
+        response = compute_response_four_vector(vec, mode='d')
+        assert_array_almost_equal(response, expected_response, decimal=2)
+
+        vec = [1, 0, 0, 0]
+        expected_response = [1, 0, 1, 1]
+        response = compute_response_four_vector(vec, mode='t')
+        assert_array_almost_equal(response, expected_response, decimal=2)
+        expected_response = [0.85, 0, 0, 0]
+        response = compute_response_four_vector(vec, mode='d')
+        assert_array_almost_equal(response, expected_response, decimal=2)
+
+        vec = [0, 0, 0, 1]
+        expected_response = [0.1562, 0, 0, 0]
+        response = compute_response_four_vector(vec, mode='t')
+        assert_array_almost_equal(response, expected_response, decimal=2)
+        expected_response = [0.13322, 0, 0, 0]
+        response = compute_response_four_vector(vec, mode='d')
+        assert_array_almost_equal(response, expected_response, decimal=2)
+
 
         vec = [0, 0, 0, 0]
-        expected_response = [0.5, 0, 0.5, 0]
+        expected_response = [0.8, 0, 0, 0]
         response = compute_response_four_vector(vec, mode='t')
-        assert_array_almost_equal(response, expected_response)
+        assert_array_almost_equal(response, expected_response, decimal=2)
+        response = compute_response_four_vector(vec, mode='d')
+        assert_array_almost_equal(response, expected_response, decimal=2)
+
 
         vec = [1, 0, 1, 0]
-        expected_response = [1, 0.85, 1, 1]
+        expected_response = [1, 1, 0.92787, 0.82735]
         response = compute_response_four_vector(vec, mode='t')
-        assert_array_almost_equal(response, expected_response)
-        expected_response = [0.5] * 4
+        assert_array_almost_equal(response, expected_response, decimal=2)
+        expected_response = [0, 0, 0, 0]
         response = compute_response_four_vector(vec, mode='d')
-        assert_array_almost_equal(response, expected_response)
+        assert_array_almost_equal(response, expected_response, decimal=2)
 
         vec = [1, 0, 0, 1]
-        expected_response = [2. / 3, 0, 0, 2. / 3]
+        expected_response = [1, 0, 0.73367, 1]
         response = compute_response_four_vector(vec, mode='t')
-        assert_array_almost_equal(response, expected_response)
-        expected_response = [0.15106, 0, 0, 0]
+        assert_array_almost_equal(response, expected_response, decimal=2)
+        expected_response = [1, 0, 0, 0]
         response = compute_response_four_vector(vec, mode='d')
-        assert_array_almost_equal(response, expected_response)
+        assert_array_almost_equal(response, expected_response, decimal=2)
 
         vec = [8./9, 0.5, 1./3, 0]
-        expected_response = [1, 1, 0.8325788, 1]
+        expected_response = [1, 1, 0.8638, 0.858]
         response = compute_response_four_vector(vec, mode='t')
-        assert_array_almost_equal(response, expected_response)
-        expected_response = [0.32424251, 0.06666674, 0.281818, 0]
+        assert_array_almost_equal(response, expected_response, decimal=2)
+        expected_response = [0, 0, 0, 0]
         response = compute_response_four_vector(vec, mode='d')
-        assert_array_almost_equal(response, expected_response)
+        assert_array_almost_equal(response, expected_response, decimal=2)
 
         vec = [1, 1./8, 1., 0.25]
-        expected_response = [1, 0.755986, 1, 0.83158]
+        expected_response = [1, 1, 0.925, 0.8208]
         response = compute_response_four_vector(vec, mode='t')
-        assert_array_almost_equal(response, expected_response)
-        expected_response = [0.42398642, 0.25958896, 0, 0]
+        assert_array_almost_equal(response, expected_response, decimal=2)
+        expected_response = [0., 0.35456, 0, 0]
         response = compute_response_four_vector(vec, mode='d')
-        assert_array_almost_equal(response, expected_response)
+        assert_array_almost_equal(response, expected_response, decimal=2)
 
 
 class TestStationaryMax(TestPlayer):
@@ -98,9 +120,7 @@ class TestStationaryMax(TestPlayer):
         p1.tournament_length = 200
         for i in range(15):
             simulate_play(p1, p2)
-        #self.assertEqual(p1.history, p2.history)
         # Should have computed a response strategy
-        simulate_play(p1, p2)
         simulate_play(p1, p2)
         self.assertIsNotNone(p1._response_four_vector)
 
@@ -114,3 +134,15 @@ class TestStationaryMaxDiff(TestPlayer):
     def test_strategy(self):
         self.first_play_test(C)
 
+
+class TestStationaryMaxvsTFT(TestHeadsUp):
+    """Test TFT vs WSLS"""
+    def test_rounds(self):
+        outcomes = [(C, C)] * 100
+        self.versus_test(axelrod.StationaryMax, axelrod.TitForTat, outcomes)
+
+class TestStationaryMaxvsALLC(TestHeadsUp):
+    """Test TFT vs WSLS"""
+    def test_rounds(self):
+        outcomes = [(C, C)] * 16
+        self.versus_test(axelrod.StationaryMax, axelrod.Cooperator, outcomes)

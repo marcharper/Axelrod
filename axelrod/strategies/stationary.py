@@ -50,7 +50,7 @@ def approximate_stationary(transitions, power=8, maximum_iterations=10):
     """
 
     transitions_ = numpy.linalg.matrix_power(transitions, power)
-    stationary, _ = principal_eigenvector(transitions, 
+    stationary, _ = principal_eigenvector(transitions,
                                           maximum_iterations=maximum_iterations)
     # Normalize to probability distribution
     stationary = stationary / sum(stationary)
@@ -89,7 +89,7 @@ def compute_stationary(four_vector1, four_vector2):
         stationary = exact_stationary(four_vector1, four_vector2)
     except ZeroDivisionError:
         transitions = compute_transitions(four_vector1, four_vector2)
-        stationary = approximate_stationary2(transitions)
+        stationary = approximate_stationary(transitions)
     return stationary
 
 # Response strategy
@@ -105,11 +105,14 @@ def stationary_payoff(four_vector, opponent_four_vector, payoffs, s=None):
     return numpy.dot(s, payoffs)
 
 def stationary_difference(four_vector, opponent_four_vector, payoffs):
-    s = compute_stationary(four_vector, opponent_four_vector)
-    p1 = stationary_payoff(four_vector, opponent_four_vector, payoffs, s=s)
-    s = [s[0], s[2], s[1], s[3]]
-    p2 = stationary_payoff(opponent_four_vector, four_vector, payoffs, s=s)
+    s1 = compute_stationary(four_vector, opponent_four_vector)
+    p1 = numpy.dot(s1, payoffs)
+    s2 = [s1[0], s1[2], s1[1], s1[3]]
+    p2 = numpy.dot(s2, payoffs)
     return p1 - p2
+
+def perturb(p, ep=0.001):
+    return (1 - ep) * p + (numpy.ones(4) - p) * ep
 
 def compute_response_four_vector(opponent_four_vector, mode='t', maxfun=100):
     """
@@ -120,6 +123,8 @@ def compute_response_four_vector(opponent_four_vector, mode='t', maxfun=100):
     (R, P, S, T) = game.RPST()
     payoffs = numpy.array([R, S, T, P])
 
+    opponent_four_vector = perturb(numpy.array(opponent_four_vector))
+
     if mode == 't': # Maximize score
         to_optimize = functools.partial(stationary_payoff, payoffs=payoffs,
                                         opponent_four_vector=opponent_four_vector)
@@ -127,9 +132,10 @@ def compute_response_four_vector(opponent_four_vector, mode='t', maxfun=100):
         to_optimize = functools.partial(stationary_difference, payoffs=payoffs,
                                         opponent_four_vector=opponent_four_vector)
 
-    p, _, _ = optimize.fmin_tnc(lambda p: -1 * to_optimize(p), [0.5] * 4,
+    p, _, _ = optimize.fmin_tnc(lambda p: -1 * to_optimize(p), [0.8] * 4,
                                 bounds=[(0, 1)] * 4, approx_grad=True,
-                                messages=0, maxfun=maxfun)
+                                messages=0, maxfun=maxfun, epsilon=0.01,
+                                accuracy=1e-6, ftol=1e-4)
     return p
 
 
@@ -149,8 +155,7 @@ class StationaryMax(Player):
         Player.__init__(self)
         self._initial = initial
         if not initial_four_vector:
-            initial_four_vector = (1, 0, 1, 0)
-            #initial_four_vector = (0.5, 0.5, 0.5, 0.5)
+            initial_four_vector = (1, 0.1, 1, 0.1)
         self.set_four_vector(initial_four_vector)
         self.initial_phase_length = initial_phase_length
         self.play_counts = defaultdict(int)
@@ -182,10 +187,10 @@ class StationaryMax(Player):
             self.play_counts[last_round] += 1
         if not round_number:
             return self._initial
-        if round_number > max(self.tournament_length // 20, 15):
+        if round_number >= max(self.tournament_length // 20, 15):
             # Compute the response strategy
             opponent_four_vector = self.opponent_four_vector()
-            mod = self.tournament_length // 10
+            mod = self.tournament_length // 20
             # This is only to reduce the CPU footprint, in a competitive tournament
             # the player should be allowed to update every round
             if round_number % mod == 0 or (self._response_four_vector is None):
