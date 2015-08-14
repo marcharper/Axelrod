@@ -187,7 +187,7 @@ class StationaryMax(Player):
             four_vector.append(coop)
         return four_vector
 
-    def update_play_counts(self):
+    def update_play_counts(self, opponent):
         last_context = (self.history[-2], opponent.history[-2])
         last_round = (self.history[-1], opponent.history[-1])
         self.play_counts[last_context] += 1
@@ -209,7 +209,7 @@ class StationaryMax(Player):
             return self._initial
         # Update play play counts
         if len(self.history) > 1:
-            self.update_play_counts()
+            self.update_play_counts(opponent)
         phase_one_end = max(self.tournament_length // 20, 15)
         if round_number < phase_one_end:
             p = self._four_vector[(self.history[-1], opponent.history[-1])]
