@@ -5,7 +5,7 @@ import unittest
 from numpy.testing import assert_array_equal, assert_array_almost_equal
 
 import axelrod
-from axelrod import Game
+from axelrod import Game, simulate_play
 from .test_player import TestPlayer, test_four_vector
 
 from axelrod.strategies.stationary import *
@@ -79,7 +79,7 @@ class TestStationaryFunctions(unittest.TestCase):
         expected_response = [1, 0.755986, 1, 0.83158]
         response = compute_response_four_vector(vec, mode='t')
         assert_array_almost_equal(response, expected_response)
-        expected_response = [0.17188231, 0.26252152, 0, 0]
+        expected_response = [0.42398642, 0.25958896, 0, 0]
         response = compute_response_four_vector(vec, mode='d')
         assert_array_almost_equal(response, expected_response)
 
@@ -92,9 +92,20 @@ class TestStationaryMax(TestPlayer):
 
     def test_strategy(self):
         self.first_play_test(C)
+        # Test initial TFT
+        p1 = self.player()
+        p2 = axelrod.Cooperator()
+        p1.tournament_length = 200
+        for i in range(15):
+            simulate_play(p1, p2)
+        #self.assertEqual(p1.history, p2.history)
+        # Should have computed a response strategy
+        simulate_play(p1, p2)
+        simulate_play(p1, p2)
+        self.assertIsNotNone(p1._response_four_vector)
 
 
-class TestStationaryDiff(TestPlayer):
+class TestStationaryMaxDiff(TestPlayer):
 
     name = "Stationary Max Diff"
     player = axelrod.StationaryMaxDiff
