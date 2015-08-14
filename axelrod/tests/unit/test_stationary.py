@@ -138,11 +138,11 @@ class TestStationaryMaxDiff(TestPlayer):
 class TestStationaryMaxvsTFT(TestHeadsUp):
     """Test TFT vs WSLS"""
     def test_rounds(self):
-        outcomes = [(C, C)] * 100
+        outcomes = [(C, C)] * 15 + [(D, C), (D, D), (D, D)]
         self.versus_test(axelrod.StationaryMax, axelrod.TitForTat, outcomes)
 
 class TestStationaryMaxvsALLC(TestHeadsUp):
     """Test TFT vs WSLS"""
     def test_rounds(self):
-        outcomes = [(C, C)] * 16
+        outcomes = [(C, C)] * 15 + [(D, C)] * 20
         self.versus_test(axelrod.StationaryMax, axelrod.Cooperator, outcomes)

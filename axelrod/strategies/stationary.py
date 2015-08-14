@@ -159,6 +159,7 @@ class StationaryMax(Player):
         self.set_four_vector(initial_four_vector)
         self.initial_phase_length = initial_phase_length
         self.play_counts = defaultdict(int)
+        self.play_cooperations = defaultdict(int)
         self._response_four_vector = None
         self.mode = mode
         self.stochastic = True
@@ -171,20 +172,23 @@ class StationaryMax(Player):
         else:
             self._four_vector = dict(zip(keys, values))
 
-    def opponent_four_vector(self, const=0.):
-        total_plays = float(len(self.history)) + const
+    def opponent_four_vector(self, const=0.5):
         # Note (C, D) and (D, C) order swapped for opponent's plays
         four_vector = []
         for key in [(C, C), (D, C), (C, D), (D, D)]:
-            four_vector.append((self.play_counts[key] + const) / total_plays)
+            coop = (self.play_cooperations[key] + const) / (self.play_counts[key] + const)
+            four_vector.append(coop)
         return four_vector
 
     def strategy(self, opponent):
         round_number = len(self.history)
         # Update play play counts
-        if round_number:
+        if len(self.history) > 1:
+            last_context = (self.history[-2], opponent.history[-2])
             last_round = (self.history[-1], opponent.history[-1])
-            self.play_counts[last_round] += 1
+            self.play_counts[last_context] += 1
+            if last_round[1] == 'C':
+                self.play_cooperations[last_context] += 1
         if not round_number:
             return self._initial
         if round_number >= max(self.tournament_length // 20, 15):
