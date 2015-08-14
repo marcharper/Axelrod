@@ -28,6 +28,7 @@ from .punisher import *
 from .qlearner import *
 from .rand import *
 from .retaliate import *
+from .stationary import StationaryMax, StationaryMaxDiff
 from .titfortat import *
 
 
@@ -108,6 +109,8 @@ ordinary_strategies = [
     Shubik,
     SoftJoss,
     SneakyTitForTat,
+    StationaryMax,
+    StationaryMaxDiff,
     StochasticWSLS,
     SuspiciousTitForTat,
     Tester,
