@@ -42,6 +42,7 @@ class TestStationaryFunctions(unittest.TestCase):
 
     def test_response(self):
         vec = [1, 1, 1, 1]
+        # Why not [0, 0, 0, 0]?
         expected_response = [0, 0.8, 0, 0]
         response = compute_response_four_vector(vec, mode='t')
         assert_array_almost_equal(response, expected_response, decimal=2)
@@ -64,14 +65,12 @@ class TestStationaryFunctions(unittest.TestCase):
         response = compute_response_four_vector(vec, mode='d')
         assert_array_almost_equal(response, expected_response, decimal=2)
 
-
         vec = [0, 0, 0, 0]
         expected_response = [0.8, 0, 0, 0]
         response = compute_response_four_vector(vec, mode='t')
         assert_array_almost_equal(response, expected_response, decimal=2)
         response = compute_response_four_vector(vec, mode='d')
         assert_array_almost_equal(response, expected_response, decimal=2)
-
 
         vec = [1, 0, 1, 0]
         expected_response = [1, 1, 0.92787, 0.82735]
@@ -120,8 +119,12 @@ class TestStationaryMax(TestPlayer):
         p1.tournament_length = 200
         for i in range(15):
             simulate_play(p1, p2)
-        # Should have computed a response strategy
         simulate_play(p1, p2)
+        simulate_play(p1, p2)
+        simulate_play(p1, p2)
+        simulate_play(p1, p2)
+        simulate_play(p1, p2)
+        # Should have computed a response strategy
         self.assertIsNotNone(p1._response_four_vector)
 
 

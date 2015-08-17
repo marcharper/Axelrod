@@ -4,7 +4,7 @@ import functools
 
 from scipy import stats, optimize
 import numpy
-from numpy import linalg
+from numpy import linalg, log
 
 from axelrod.eigen import principal_eigenvector
 from axelrod import Game, Player, random_choice
@@ -49,7 +49,7 @@ def approximate_stationary(transitions, power=8, maximum_iterations=10):
     matrix of the Markov process for the four states CC, CD, DC, DD.
     """
 
-    transitions_ = numpy.linalg.matrix_power(transitions, power)
+    transitions_ = linalg.matrix_power(transitions, power)
     stationary, _ = principal_eigenvector(transitions,
                                           maximum_iterations=maximum_iterations)
     # Normalize to probability distribution
@@ -89,7 +89,7 @@ def compute_stationary(four_vector1, four_vector2):
         stationary = exact_stationary(four_vector1, four_vector2)
     except ZeroDivisionError:
         transitions = compute_transitions(four_vector1, four_vector2)
-        stationary = approximate_stationary(transitions)
+        stationary = approximate_stationary2(transitions)
     return stationary
 
 # Response strategy
@@ -159,9 +159,11 @@ class StationaryMax(Player):
         Player.__init__(self)
         self._initial = initial
         if not initial_four_vector:
-            initial_four_vector = (1, 0.1, 1, 0.1)
+            #initial_four_vector = (1, 0.1, 1, 0.1)
+            #initial_four_vector = (0.5, 0.5, 0.5, 0.5)
+            initial_four_vector = (0.8, 0.2, 0.8, 0.2)
         self.set_four_vector(initial_four_vector)
-        self.initial_phase_length = initial_phase_length
+        #self.initial_phase_length = initial_phase_length
         self.play_counts = defaultdict(int)
         self.play_cooperations = defaultdict(int)
         self._response_four_vector = None
@@ -169,6 +171,7 @@ class StationaryMax(Player):
         self.stochastic = True
         self.probing = False
         self.isTFT = False
+        self.isDefector = False
         self._memory_depth = 30
 
     def set_four_vector(self, vector, response=False):
@@ -210,14 +213,16 @@ class StationaryMax(Player):
         # Update play play counts
         if len(self.history) > 1:
             self.update_play_counts(opponent)
-        phase_one_end = max(self.tournament_length // 20, 15)
+        phase_one_end = max(self.tournament_length // 20, 10)
         if round_number < phase_one_end:
             p = self._four_vector[(self.history[-1], opponent.history[-1])]
             return random_choice(p)
         # After the initial phase, determine if we're playing against a
         # strategy that tries to enforce cooperation.
         if round_number == phase_one_end:
-            if opponent.defections == 0:
+            if opponent.defections > phase_one_end // 2:
+                self.isDefector = True
+            elif opponent.defections == 0:
                 # Try a defection
                 self.probing = True
                 return 'D'
@@ -231,30 +236,35 @@ class StationaryMax(Player):
         if (round_number == phase_one_end + 3) and (self.probing):
             if opponent.history[:-2] == ['D', 'C']:
                 # Opponent enforces cooperation, play TFT
-                self.isTFT == True
-            self.probing == False
-        # Final Phase
+                self.isTFT = True
+            self.probing = False
+        #Final Phase
+        if self.isDefector:
+            return 'D'
         if self.isTFT:
             return 'D' if opponent.history[-1:] == ['D'] else 'C'
         else:
             # Compute the optimal response strategy
             opponent_four_vector = self.opponent_four_vector()
-            mod = self.tournament_length // 20
+            test_val = log(round_number / float(phase_one_end)) / log(2)
             # This is only to reduce the CPU footprint, in a competitive tournament
             # the player should be allowed to update every round
-            if round_number % mod == 0 or (self._response_four_vector is None):
+            if (test_val == int(test_val)) or (self._response_four_vector is None):
+            #if round_number % mod == 0 or (self._response_four_vector is None):
                 response_vector = compute_response_four_vector(opponent_four_vector,
                                                             mode=self.mode)
                 self.set_four_vector(response_vector, response=True)
-        p = self._response_four_vector[(self.history[-1], opponent.history[-1])]
-        return random_choice(p)
+            p = self._response_four_vector[(self.history[-1], opponent.history[-1])]
+            return random_choice(p)
 
     def reset(self):
         Player.reset(self)
         self.play_counts = defaultdict(int)
+        self.play_cooperations = defaultdict(int)
         self._response_four_vector = None
         self.probing = False
         self.isTFT = False
+        self.isDefector = False
 
 class StationaryMaxDiff(StationaryMax):
 
