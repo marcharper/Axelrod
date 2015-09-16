@@ -1,6 +1,9 @@
+import numpy
+
 from axelrod import Player, is_cheater
 from ._strategies import strategies
 from .hunter import DefectorHunter, AlternatorHunter, RandomHunter, MathConstantHunter
+from .rand import Random
 
 
 # Needs to be computed manually to prevent circular dependency
@@ -169,3 +172,26 @@ class MetaHunter(MetaPlayer):
             return 'D' if opponent.history[-1:] == ['D'] else 'C'
         else:
             return 'C'
+
+
+class MetaRandom(MetaPlayer):
+    """A player who uses a selection of hunters."""
+
+    name = "Meta Random"
+    classifier = {
+        'memory_depth': float('inf'),  # Long memory
+        'stochastic': True,
+        'inspects_source': False,
+        'manipulates_source': False,
+        'manipulates_state': False
+    }
+
+    def __init__(self, step=0.5):
+        self.team = [Random(p) for p in numpy.arange(0, 1 + step, step)]
+        MetaPlayer.__init__(self)
+
+    @staticmethod
+    def meta_strategy(results, opponent):
+        if results.count('C') >= len(results) / 2.:
+            return 'C'
+        return 'D'
