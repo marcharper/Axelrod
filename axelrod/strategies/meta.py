@@ -1,6 +1,7 @@
 import numpy
 
 from axelrod import Player, is_cheater
+from axelrod.game import Game
 from ._strategies import strategies
 from .hunter import DefectorHunter, AlternatorHunter, RandomHunter, MathConstantHunter
 from .rand import Random
@@ -109,14 +110,14 @@ class MetaWinner(MetaPlayer):
             t.score = 0
 
     def strategy(self, opponent):
-
+        game = Game()
         # Update the running score for each player, before determining the next move.
         if len(self.history):
             for player in self.team:
-                pl_C = player.proposed_history[-1] == "C"
-                opp_C = opponent.history[-1] == "C"
-                s = 2 * (pl_C and opp_C) or 5 * (pl_C and not opp_C) or 4 * (not pl_C and not opp_C) or 0
-                player.score += s
+                #pl_C = player.proposed_history[-1] == "C"
+                #opp_C = opponent.history[-1] == "C"
+                #s = 2 * (pl_C and opp_C) or 5 * (pl_C and not opp_C) or 4 * (not pl_C and not opp_C) or 0
+                player.score += game.scores[(player.proposed_history[-1], opponent.history[-1])][0]
 
         return MetaPlayer.strategy(self, opponent)
 
@@ -175,7 +176,7 @@ class MetaHunter(MetaPlayer):
 
 
 class MetaRandom(MetaPlayer):
-    """A player who uses a selection of hunters."""
+    """A player who uses a selection of random players."""
 
     name = "Meta Random"
     classifier = {
@@ -186,12 +187,31 @@ class MetaRandom(MetaPlayer):
         'manipulates_state': False
     }
 
-    def __init__(self, step=0.5):
-        self.team = [Random(p) for p in numpy.arange(0, 1 + step, step)]
-        MetaPlayer.__init__(self)
+    def __init__(self, step=0.05):
+        Player.__init__(self)
+        self.team = [Random(p) for p in numpy.arange(0.5, 1 + step, step)]
+        self.nteam = len(self.team)
+        self.scores = [0] * self.nteam
+        self.last_round = ['C'] * self.nteam
 
-    @staticmethod
-    def meta_strategy(results, opponent):
-        if results.count('C') >= len(results) / 2.:
+    def meta_strategy(self, results, opponent):
+        # Poll strategies
+        for i, player in enumerate(self.team):
+            self.last_round[i] = player.strategy(opponent)
+
+        if len(self.history) < 10:
+            # TFT
+            #return 'D' if opponent.history[-1:] == ['D'] else 'C'
             return 'C'
-        return 'D'
+
+        # Poll each strategy and update scores
+        game = Game()
+        for i, play in enumerate(self.last_round):
+            self.scores[i] += game.scores[(play, opponent.history[-1])][0]
+
+        # Who has played the best so far?
+        index = numpy.argmax(self.scores)
+
+
+        return self.last_round[index]
+
