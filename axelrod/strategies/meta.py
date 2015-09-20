@@ -108,16 +108,13 @@ class MetaWinner(MetaPlayer):
         for t in self.team:
             t.proposed_history = []
             t.score = 0
+        self.game = Game()
 
     def strategy(self, opponent):
-        game = Game()
         # Update the running score for each player, before determining the next move.
         if len(self.history):
             for player in self.team:
-                #pl_C = player.proposed_history[-1] == "C"
-                #opp_C = opponent.history[-1] == "C"
-                #s = 2 * (pl_C and opp_C) or 5 * (pl_C and not opp_C) or 4 * (not pl_C and not opp_C) or 0
-                player.score += game.scores[(player.proposed_history[-1], opponent.history[-1])][0]
+                player.score += self.game.scores[(player.proposed_history[-1], opponent.history[-1])][0]
 
         return MetaPlayer.strategy(self, opponent)
 
@@ -193,6 +190,8 @@ class MetaRandom(MetaPlayer):
         self.nteam = len(self.team)
         self.scores = [0] * self.nteam
         self.last_round = ['C'] * self.nteam
+        self.game = Game()
+        self.init_args = (step,)
 
     def meta_strategy(self, results, opponent):
         # Poll strategies
@@ -205,13 +204,11 @@ class MetaRandom(MetaPlayer):
             return 'C'
 
         # Poll each strategy and update scores
-        game = Game()
         for i, play in enumerate(self.last_round):
-            self.scores[i] += game.scores[(play, opponent.history[-1])][0]
+            self.scores[i] += self.game.scores[(play, opponent.history[-1])][0] - self.game.scores[(opponent.history[-1], play)][0]
 
         # Who has played the best so far?
         index = numpy.argmax(self.scores)
-
 
         return self.last_round[index]
 
