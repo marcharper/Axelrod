@@ -194,21 +194,27 @@ class MetaRandom(MetaPlayer):
         self.init_args = (step,)
 
     def meta_strategy(self, results, opponent):
+        if len(self.history) == 0:
+            return 'C'
         # Poll strategies
         for i, player in enumerate(self.team):
             self.last_round[i] = player.strategy(opponent)
 
-        if len(self.history) < 10:
-            # TFT
-            #return 'D' if opponent.history[-1:] == ['D'] else 'C'
-            return 'C'
-
         # Poll each strategy and update scores
         for i, play in enumerate(self.last_round):
-            self.scores[i] += self.game.scores[(play, opponent.history[-1])][0] - self.game.scores[(opponent.history[-1], play)][0]
+            scores = self.game.scores[(play, opponent.history[-1])]
+            #self.scores[i] += scores[0]
+            #self.scores[i] += abs(scores[0] - scores[1])
+            #self.scores[i] += scores[0] - scores[1]
+            self.scores[i] += scores[0] + scores[1]
 
-        # Who has played the best so far?
-        index = numpy.argmax(self.scores)
+        if len(self.history) < 20:
+            # TFT
+            return 'D' if opponent.history[-1:] == ['D'] else 'C'
+            #return 'C'
+        else:
+            # Who has played the best so far?
+            index = numpy.argmax(self.scores)
 
         return self.last_round[index]
 
