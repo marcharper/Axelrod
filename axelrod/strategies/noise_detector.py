@@ -57,15 +57,23 @@ class NoiseDetector(Player):
         if self.is_defecting:
             return 'D'
 
+        last_play = self.history[-1]
+        last_intended_play = self.submitted_plays[-1]
+
         # Update mismatch_count
-        if self.history[-1] != self.submitted_plays[-1]:
+        if last_play != last_intended_play:
             self.mismatch_count += 1
 
-        # Defect if the opponent has defected more than can be reasonably
-        # explained by noise
+            # Did I inadvertenly defect against a cooperation? If so apologize.
+            if last_play == 'D' and opponent.history[-1] == 'C':
+                return 'C'
+
+        # Defect if the opponent has defected more often than can be
+        # reasonably explained by noise
         defection_threshold = upper_threshold(self.mismatch_count,
                                                 len(self.history))
         defection_proportion = float(opponent.defections) / len(opponent.history)
+        # Discount by 50% since C can also change to D accidentally
         if defection_proportion >= 0.5 * defection_threshold:
             self.is_defecting = True
             return 'D'
