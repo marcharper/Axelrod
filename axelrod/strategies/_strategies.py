@@ -28,6 +28,7 @@ from .memoryone import (
     ZDExtort2, SoftJoss, MemoryOnePlayer)
 from .mindcontrol import MindController, MindWarper, MindBender
 from .mindreader import MindReader, ProtectedMindReader, MirrorMindReader
+from .noise_detector import NoiseDetector
 from .oncebitten import OnceBitten, FoolMeOnce, ForgetfulFoolMeOnce, FoolMeForever
 from .prober import Prober, Prober2, Prober3, HardProber
 from .punisher import Punisher, InversePunisher
@@ -105,6 +106,7 @@ strategies = [
     MindWarper,
     MirrorMindReader,
     NiceAverageCopier,
+    NoiseDetector,
     OnceBitten,
     OppositeGrudger,
     Pi,
