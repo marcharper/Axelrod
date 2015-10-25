@@ -253,6 +253,47 @@ class TestShubik(TestPlayer):
         self.responses_test(history_1, history_2, [C])
 
 
+class TestSteinRapoport(TestPlayer):
+    """This rule plays tit for tat except that it cooperates on the first four
+    moves, it defects on the last two moves, and every fifteen moves it checks
+    to see if the opponent seems to be playing randomly. This check uses a
+    chi-squared test of the other's transition probabilities and also checks
+    for alternating moves of CD and DC.
+    -- Axelrod, "Effective Choice in the Prisoner's Dilemma"
+
+    Note: Makes use of tournament length
+    Warning: This strategy is incomplete
+    """
+
+    name = "Stein-Rapoport"
+    player = axelrod.SteinRapoport
+    expected_classifier = {
+        'memory_depth': float('inf'), # Depending on how the Chi^2 is done
+        'stochastic': False,
+        'inspects_source': False,
+        'manipulates_source': False,
+        'manipulates_state': False
+    }
+
+    def test_strategy(self):
+        self.first_play_test(C)
+
+
+class TestTidemanChieruzzi(TestPlayer):
+    name = "Tideman-Chieruzzi"
+    player = axelrod.TidemanChieruzzi
+    expected_classifier = {
+        'memory_depth': float('inf'), # Depending on how the Chi^2 is done
+        'stochastic': False,
+        'inspects_source': False,
+        'manipulates_source': False,
+        'manipulates_state': False
+    }
+
+    def test_strategy(self):
+        self.first_play_test(C)
+
+
 class TestTullock(TestPlayer):
 
     name = "Tullock"

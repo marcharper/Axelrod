@@ -174,6 +174,85 @@ class Feld(Player):
         return random_choice(p)
 
 
+class Graaskamp(Player):
+    """
+    This rule plays tit for tat for 50 moves, defects on move 51, and then plays
+    5 more moves of tit for tat. A check is then made to see if the player seems
+    to be RANDOM, in which case it defects from then on. A check is also made to
+    see if the other is TIT FOR TAT, ANALOGY (a program from the preliminary
+    tournament), and its own twin, in which case it plays tit for tat. Otherwise
+    it randomly defects every 5 to 15 moves, hoping that enough trust has been
+    built up so that the other player will not notice these defections.
+    -- Axelrod, "Effective Choice in the Prisoner's Dilemma"
+
+    Warning: this strategy is incomplete.
+    Note: Not the same as "Graaskamp and Katzen"
+    """
+
+    name = "Graaskamp"
+    classifier = {
+        'memory_depth': float('inf'),  # Long memory
+        'stochastic': True,
+        'inspects_source': False,
+        'manipulates_source': False,
+        'manipulates_state': False
+    }
+
+    def __init__(self):
+        self.is_defecting = False
+        self.is_TFT = False
+        self.reset_defection()
+        self.init_args = ()
+
+    def reset_defection(self):
+        r = random.random()
+        self.defect_in_rounds = int(10 * r + 5)
+
+    def strategy(self, opponent):
+        round_number = len(self.history) + 1
+        # 50 rounds of TFT
+        if round_number == 1:
+            return C
+        if round_number < 51:
+            return D if opponent.history[-1] == D else C
+        # Defect on round 51
+        if round_number == 51:
+            return D
+        # 5 more rounds of TFT
+        if round_number < 57:
+            return D if opponent.history[-1] == D else C
+        if round_number == 57:
+            # Check if player seems random
+            game = self.tournament_attributes["game"]
+            opp_total_score = sum(x[0] for x in map(game.score,
+                                    zip(opponent.history, self.history)))
+            if opp_total_score <= 135:
+                # Defect for the remainder.
+                self.is_defecting = True
+        if self.is_defecting:
+            return D
+        ### Not yet implemented ###
+        # Check for TitForTat and Analogy (definition unknown)
+        # If so, act as TFT
+        # self.is_TFT = True
+        ###
+        if self.is_TFT:
+            return D if opponent.history[-1] == D else C
+        # If we've gotten this far, we are randomly defecting
+        # every 5 to 15 rounds, cooperating otherwise
+        if self.defect_in_rounds == 0:
+            self.reset_defection()
+            return D
+        self.defect_in_rounds -= 1
+        return C
+
+    def reset(self):
+        Player.reset(self)
+        self.is_defecting = False
+        self.is_TFT = False
+        self.reset_defection()
+
+
 class Grofman(Player):
     """
     Cooperate on the first 2 moves. Return opponent's move for the next 5.
@@ -350,6 +429,145 @@ class Shubik(Player):
         self.is_retaliating = False
         self.retaliation_length = 0
         self.retaliation_remaining = 0
+
+
+class SteinRapoport(Player):
+    """This rule plays tit for tat except that it cooperates on the first four
+    moves, it defects on the last two moves, and every fifteen moves it checks
+    to see if the opponent seems to be playing randomly. This check uses a
+    chi-squared test of the other's transition probabilities and also checks
+    for alternating moves of CD and DC.
+    -- Axelrod, "Effective Choice in the Prisoner's Dilemma"
+    Note: Makes use of tournament length
+    Warning: This strategy is incomplete
+    """
+
+    name = "Stein-Rapoport"
+    classifier = {
+        'memory_depth': float('inf'), # Depending on how the Chi^2 is done
+        'stochastic': False,
+        'inspects_source': False,
+        'manipulates_source': False,
+        'manipulates_state': False
+    }
+
+    def __init__(self):
+        Player.__init__(self)
+        self.isDefecting = False
+
+    def strategy(self, opponent):
+        # Cooperate on the first four rounds
+        if len(self.history) < 4:
+            return C
+        # Defect on the last two rounds
+        if self.tournament_attributes["length"] - len(self.history) <= 2:
+            return D
+        if len(self.history) % 15 == 0:
+            # Every 15 rounds do a Chi-squared for random
+            expected = len(self.history) / 2.
+            chi = (opponent.defections - expected) ** 2 / expected + \
+                  (opponent.cooperations - expected) ** 2 / expected)
+            if chi < 2: # Arbitrary choice, 60:40 gives chi = 2
+                self.isDefecting = True
+            ## Not implemented
+        # Also check for alternating moves of C, D and D, C
+        ## Not implemented
+        if zip(self.history[-2:0], opponent.history[-2:0]) == [(C, D), (D, C)]:
+            return D
+        if self.isDefecting:
+            return D
+        # Tit For Tat
+        return D if opponent.history[-1] == D else C
+
+    def reset(self):
+        Player.reset(self)
+        self.isDefecting = False
+
+
+class TidemanChieruzzi(Player):
+    """
+    Every run of defections played by the opponent increases the number of\
+    defections that this strategy retaliates with by 1.
+    The opponent is given a fresh start if:
+        it is 10 points behind this strategy
+        and it has not just started a run of defections
+        and it has been at least 20 rounds since the last fresh start
+        and there are more than 10 rounds remaining in the tournament
+        and the total number of defections differs from a 50-50 random sample by
+        at least 3.0 standard deviations.
+    """
+
+    name = "Tideman-Chieruzzi"
+    classifier = {
+        'memory_depth': float('inf'), # Depending on how the Chi^2 is done
+        'stochastic': False,
+        'inspects_source': False,
+        'manipulates_source': False,
+        'manipulates_state': False
+    }
+
+    def __init__(self):
+        Player.__init__(self)
+        self.defection_run_count = 0
+        self.is_retaliating = False
+        self.retaliation_remaining = 0
+        self.last_fresh_start = 0
+        self.score_diff = 0
+        self.fresh_start = False
+
+    def strategy(self, opponent):
+        # Fresh start yields two C, this is the second
+        if self.fresh_start:
+            self.fresh_start = False
+            return C
+
+        round_number = len(self.history) + 1
+        if round_number == 1:
+            return C
+        # Update score difference
+        game = self.tournament_attributes["game"]
+        last_round = (self.history[-1], opponent.history[-1])
+        scores = game.score(last_round)
+        self.score_diff += scores[0] - scores[1]
+
+        if round_number > 1:
+            # Check for start of a defection run
+            if opponent.history[-2:] == [C, D]:
+                self.defection_run_count += 1
+                if not self.is_retaliating:
+                    self.is_retaliating == True
+                    self.retaliation_remaining = self.defection_run_count
+
+        # Check Fresh Start Criteria
+        if  (opponent.history[-2:] != [C, D]) and \
+            (round_number - 20 > self.last_fresh_start) and \
+            (abs(opponent.defections - (round_number - 1) / 2) <= 1.5 * sqrt(round_number - 1)) and \
+            (self.tournament_attributes['length'] - round_number > 10) and \
+            (self.score_diff >= 10):
+            # Fresh Start!
+            self.is_retaliating = False
+            self.retaliation_remaining = 0
+            self.score_diff = 0
+            self.last_fresh_start = round_number
+            self.fresh_start = True
+            return C
+
+        if self.is_retaliating:
+            self.retaliation_remaining -= 1
+            if self.retaliation_remaining == 0:
+                self.is_retaliating = False
+            return D
+        # TFT
+        return D if opponent.history[-1] == D else C
+
+    def reset(self):
+        Player.reset(self)
+        self.defection_run_count = 0
+        self.is_retaliating = False
+        self.retaliation_remaining = 0
+        self.last_fresh_start = 0
+        self.fresh_start = False
+        self.score_diff = 0
 
 
 class Tullock(Player):

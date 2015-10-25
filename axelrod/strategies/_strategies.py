@@ -4,7 +4,8 @@ from .alternator import Alternator
 from .appeaser import Appeaser
 from .averagecopier import AverageCopier, NiceAverageCopier
 from .axelrod_first import (Davis, RevisedDowning, Feld, Grofman, Nydegger,
-                            Joss, Shubik, Tullock, UnnamedStrategy)
+                            Joss, Shubik, Tullock, UnnamedStrategy,
+                            Graaskamp, SteinRapoport, TidemanChieruzzi)
 from .axelrod_second import Champion, Eatherley, Tester
 from .backstabber import BackStabber, DoubleCrosser
 from .calculator import Calculator
