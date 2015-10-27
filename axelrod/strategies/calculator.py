@@ -1,6 +1,7 @@
 import itertools
 
 from axelrod import Player, Actions
+from axelrod.player import update_history
 from .axelrod_first import Joss
 from .hunter import detect_cycle
 
@@ -32,7 +33,7 @@ class Calculator(Player):
             return self.extended_strategy(opponent)
         else:
             play = self.joss_instance.strategy(opponent)
-            self.joss_instance.history.append(play)
+            update_history(self.joss_instance, play)
             return play
 
     def extended_strategy(self, opponent):

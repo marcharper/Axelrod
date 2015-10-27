@@ -121,7 +121,7 @@ class TestPlayer(unittest.TestCase):
         """Test that the player initiates correctly."""
         if self.__class__ != TestPlayer:
             player = self.player()
-            self.assertEqual(player.history, [])
+            self.assertEqual(player.history, "")
             self.assertEqual(player.tournament_attributes,
                 {'length': -1, 'game': DefaultGame})
             self.assertEqual(player.cooperations, 0)
@@ -142,9 +142,9 @@ class TestPlayer(unittest.TestCase):
     def test_reset(self):
         """Make sure reseting works correctly."""
         p = self.player()
-        p.history = [C, C]
+        p.history = "CC"
         p.reset()
-        self.assertEqual(p.history, [])
+        self.assertEqual(p.history, "")
         self.assertEqual(self.player().cooperations, 0)
         self.assertEqual(self.player().defections, 0)
 

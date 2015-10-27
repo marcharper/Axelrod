@@ -1,7 +1,7 @@
 import copy
 import inspect
 
-from axelrod import Player, RoundRobin, update_histories, Actions
+from axelrod import Player, RoundRobin, update_history, Actions
 
 C, D = Actions.C, Actions.D
 
@@ -10,12 +10,14 @@ def simulate_match(player_1, player_2, strategy, rounds=10):
     for match in range(rounds):
         play_1, play_2 = strategy, player_2.strategy(player_1)
         # Update histories and counts
-        update_histories(player_1, player_2, play_1, play_2)
+        update_history(player_1, play_1)
+        update_history(player_2, play_2)
 
 def roll_back_history(player, rounds):
     """Undo the last `rounds` rounds as sufficiently as possible."""
     for i in range(rounds):
-        play = player.history.pop(-1)
+        play = player.history[-1]
+        player.history = player.history[:-1]
         if play == C:
             player.cooperations -= 1
         elif play == D:
