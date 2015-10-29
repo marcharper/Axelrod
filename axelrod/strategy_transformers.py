@@ -291,11 +291,25 @@ MixedTransformer = StrategyTransformerFactory(mixed_wrapper, name_prefix="Mutate
 class RetaliationWrapper(object):
     """Retaliates `retaliations` times after a defection (cumulative)."""
 
-    def __call__(self, player, opponent, action, retaliations):
+    def __call__(self, player, opponent, action, retaliations,
+                 myseq=None, opseq=None):
         if len(player.history) == 0:
             self.retaliation_count = 0
+            if not myseq:
+                self.myseq = []
+            if not opseq:
+                self.opseq = [D]
             return action
-        if opponent.history[-1] == D:
+        if len(self.myseq) == 0:
+            my_comp_seq = []
+        else:
+            my_comp_seq = player.history[-len(self.myseq):]
+        if len(self.opseq) == 0:
+            op_comp_seq = []
+        else:
+            op_comp_seq = opponent.history[-len(self.opseq):]
+
+        if (self.myseq == my_comp_seq) and (self.opseq == op_comp_seq):
             self.retaliation_count += retaliations - 1
             return D
         if self.retaliation_count == 0:
