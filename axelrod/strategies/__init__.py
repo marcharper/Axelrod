@@ -8,14 +8,16 @@ from ._strategies import *
 from .meta import (
     MetaPlayer, MetaMajority, MetaMinority, MetaWinner, MetaHunter,
     MetaMajorityMemoryOne, MetaWinnerMemoryOne, MetaMajorityFiniteMemory,
-    MetaWinnerFiniteMemory, MetaMajorityLongMemory, MetaWinnerLongMemory,
-    MetaMixer
+    MetaMajorityLongMemory, MetaWinnerLongMemory, MetaMixer
     )
+
+from .constructed import HuntingOmegaTFT, HuntingFMO, HuntingELU
 
 strategies.extend((MetaHunter, MetaMajority, MetaMinority, MetaWinner,
                    MetaMajorityMemoryOne, MetaWinnerMemoryOne,
                    MetaMajorityFiniteMemory, MetaWinnerFiniteMemory,
                    MetaMajorityLongMemory, MetaWinnerLongMemory, MetaMixer))
+                   HuntingOmegaTFT, HuntingFMO, HuntingELU))
 
 # Distinguished strategy collections in addition to
 # `strategies` from _strategies.py

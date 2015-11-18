@@ -9,6 +9,7 @@ class TestTournamentManagerFactory(unittest.TestCase):
         cls.tmf = axelrod.TournamentManagerFactory
 
         cls.test_output_directory = './assets/'
+        
         cls.test_with_ecological = True
         cls.test_rebuild_cache = False
         cls.test_cache_file = './cache.txt'

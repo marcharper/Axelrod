@@ -179,13 +179,15 @@ class MetaHunter(MetaPlayer):
         'manipulates_state': False
     }
 
-    def __init__(self):
+    def __init__(self, team=None):
         # Notice that we don't include the cooperator hunter, because it leads to excessive
         # defection and therefore bad performance against unforgiving strategies. We will stick
         # to hunters that use defections as cues. However, a really tangible benefit comes from
         # combining Random Hunter and Math Constant Hunter, since together they catch strategies
         # that are lightly randomized but still quite constant (the tricky/suspecious ones).
-        self.team = [DefectorHunter, AlternatorHunter, RandomHunter, MathConstantHunter, CycleHunter, EventualCycleHunter]
+        if not team:
+            team = [DefectorHunter, AlternatorHunter, RandomHunter, MathConstantHunter, CycleHunter, EventualCycleHunter]
+        self.team = team
 
         super(MetaHunter, self).__init__()
 
