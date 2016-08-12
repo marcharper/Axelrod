@@ -2,6 +2,7 @@ from collections import defaultdict
 from axelrod import Actions, Player
 
 from keras.models import model_from_json
+
 import numpy as np
 
 C, D = Actions.C, Actions.D
@@ -107,7 +108,7 @@ class KNN(Player):
         features = compute_features(self, opponent)
         X = np.array([features])
         coop_prob = self.model.predict(X)
-        if coop_prob < 0.9:
+        if coop_prob < 0.8:
             return D
         return C
 

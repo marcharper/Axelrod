@@ -124,8 +124,8 @@ class DeterministicCache(UserDict):
         file_name : string
             File path to which the cache should be saved
         """
-        with open(file_name, 'wb') as io:
-            pickle.dump(self.data, io)
+        # with open(file_name, 'wb') as io:
+        #     pickle.dump(self.data, io)
         return True
 
     def load(self, file_name):
