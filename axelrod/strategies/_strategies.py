@@ -35,6 +35,7 @@ from .hunter import (
     DefectorHunter, CooperatorHunter, CycleHunter, AlternatorHunter,
     MathConstantHunter, RandomHunter, EventualCycleHunter)
 from .inverse import Inverse
+from .kerasNN import KNN
 from .lookerup import LookerUp, EvolvedLookerUp
 from .mathematicalconstants import Golden, Pi, e
 from .memoryone import (
@@ -136,6 +137,7 @@ all_strategies = [
     LimitedRetaliate,
     LimitedRetaliate2,
     LimitedRetaliate3,
+    KNN,
     EvolvedLookerUp,
     MathConstantHunter,
     NaiveProber,
