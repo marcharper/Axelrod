@@ -108,7 +108,7 @@ class KNN(Player):
         features = compute_features(self, opponent)
         X = np.array([features])
         coop_prob = self.model.predict(X)
-        if coop_prob < 0.8:
+        if coop_prob < 0.6:
             return D
         return C
 
