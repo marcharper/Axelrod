@@ -1,6 +1,10 @@
 from collections import defaultdict
 from axelrod import Actions, Player
 
+# import theano
+# theano.config.device = "cpu"
+# theano.config.force_device = True
+
 from keras.models import model_from_json
 
 import numpy as np
@@ -9,13 +13,11 @@ C, D = Actions.C, Actions.D
 
 """
 Todo:
-* function to map histories to NN input
 * decision function based on output
 * run tournaments to collect more data and re-train
 network
 * Use game matrix in calculation
 * RNN
-* predict effect of defection
 """
 
 
@@ -25,12 +27,12 @@ def map_history(h):
     return [mapping[x] for x in h]
 
 def load_model(name="model"):
-    json_file = open("/home/user/" + name + '.json', 'r')
+    json_file = open("/home/marc/repos/axelrod/Axelrod/model.json", 'r')
     loaded_model_json = json_file.read()
     json_file.close()
     loaded_model = model_from_json(loaded_model_json)
     # load weights into new model
-    loaded_model.load_weights("/home/user/" + name + ".h5")
+    loaded_model.load_weights("/home/marc/repos/axelrod/Axelrod/model.h5")
     return loaded_model
 
 def compute_features(player, opponent):
@@ -47,36 +49,11 @@ def compute_features(player, opponent):
     features.extend(map_history(opponent.history[-2:]))
     return features
 
-# def vectorize_interactions(h1, h2):
-#     coops = np.cumsum(h1)
-#     op_coops = np.cumsum(h2)
-#     ccs = cumulative_context_counts(h1, h2)
-#     for i in range(4, len(h1)):
-#         row = [i, coops[i], op_coops[i],
-#                h1[0], h1[1], h2[0], h2[1],
-#                h1[i-2], h1[i-1], h2[i-2], h2[i-1]]
-# #         cc = context_counts(h1, h2, i)
-#         row.extend(ccs[i])
-#         y = h2[i]
-#         row.append(y)
-#         yield row
-#
-# def zeros_and_ones(h):
-#     return list(map(lambda x: mapping[x], h))
-#
-# def yield_data(filename):
-#     with open(filename) as handle:
-#         for line in handle:
-#             s = line.strip().split(',')
-#             h1, h2 = s[-2], s[-1]
-#             h1 = zeros_and_ones(h1)
-#             h2 = zeros_and_ones(h2)
-#             yield from vectorize_interactions(h1, h2)
 
 class KNN(Player):
     """A player who alternates between cooperating and defecting."""
 
-    name = 'Keras NN'
+    name = '------------------------'
     classifier = {
         'memory_depth': float('inf'),
         'stochastic': False,
@@ -108,9 +85,26 @@ class KNN(Player):
         features = compute_features(self, opponent)
         X = np.array([features])
         coop_prob = self.model.predict(X)
-        if coop_prob < 0.6:
+
+        if coop_prob > 0.85:
+            # Can we get away with a defection?
+            # Update features
+            features[0] += 1
+            features[2] += 1
+            features[5] += 1
+            features[11:13] = map_history([self.history[-1], D])
+            features[13:15] = map_history([self.history[-1], C])
+            X = np.array([features])
+            retaliation_prob = self.model.predict(X)
+            if retaliation_prob < 0.15:
+                return D
+            # If not then retaliate
+            else:
+                return C
+        else:
+            # If cooperation isn't likely and we can't defect without
+            # retaliation, then defect
             return D
-        return C
 
         def reset(self):
             Player.reset(self)
