@@ -21,7 +21,7 @@ network
 """
 
 
-mapping = {'C': 0, 'D': 1}
+mapping = {'C': 1, 'D': 0}
 
 def map_history(h):
     return [mapping[x] for x in h]
@@ -36,17 +36,25 @@ def load_model(name="model"):
     return loaded_model
 
 def compute_features(player, opponent):
-    features = [len(player.history),
-                player.cooperations, opponent.cooperations,
+    N = len(player.history)
+    features = [N,
+                player.cooperations, N - player.cooperations,
+                opponent.cooperations, N - opponent.cooperations,
                 player.play_counts[('C', 'C')],
                 player.play_counts[('C', 'D')],
                 player.play_counts[('D', 'C')],
                 player.play_counts[('D', 'D')],
                 ]
-    features.extend(map_history(player.history[0:2]))
-    features.extend(map_history(opponent.history[0:2]))
-    features.extend(map_history(player.history[-2:]))
-    features.extend(map_history(opponent.history[-2:]))
+    if len(player.history) > 1:
+        features.extend(map_history(player.history[0:2]))
+        features.extend(map_history(opponent.history[0:2]))
+        features.extend(map_history(player.history[-2:]))
+        features.extend(map_history(opponent.history[-2:]))
+    else:
+        features.extend(map_history(player.history) + [0])
+        features.extend(map_history(opponent.history) + [0])
+        features.extend([0] + map_history(player.history))
+        features.extend([0] + map_history(opponent.history[-2:]))
     return features
 
 
@@ -71,39 +79,53 @@ class KNN(Player):
 
     def strategy(self, opponent):
         # Record context counts
-        if len(self.history):
+        if len(self.history) > 0:
             last_round = (self.history[-1], opponent.history[-1])
             self.play_counts[last_round] += 1
-        # TFT for first 4 rounds
-        if len(self.history) == 0:
+        else:
             return C
-        if len(self.history) < 4:
-            # React to the opponent's last move
-            if opponent.history[-1] == D:
-                return D
-            return C
+        # # TFT for first 2 rounds
+        # if len(self.history) == 0:
+        #     return C
+        # if len(self.history) == 1:
+        #     if opponent.history[-1] == D:
+        #         return D
+        #     return C
+        # if len(self.history) < 4:
+        #     if len(self.history) == 0:
+        #         return C
+        #     # React to the opponent's last move
+        #     if opponent.history[-1] == D:
+        #         return D
+        #     return C
         features = compute_features(self, opponent)
         X = np.array([features])
-        coop_prob = self.model.predict(X)
+        coop_prob = self.model.predict_proba(X, verbose=False)[0]
 
-        if coop_prob > 0.85:
-            # Can we get away with a defection?
-            # Update features
-            features[0] += 1
-            features[2] += 1
-            features[5] += 1
-            features[11:13] = map_history([self.history[-1], D])
-            features[13:15] = map_history([self.history[-1], C])
-            X = np.array([features])
-            retaliation_prob = self.model.predict(X)
-            if retaliation_prob < 0.15:
-                return D
-            # If not then retaliate
-            else:
-                return C
+        # if coop_prob > 0.90:
+        #     # Can we get away with a defection?
+        #     # Update features for a round of D, C
+        #     features[0] += 1
+        #     features[2] += 1
+        #     features[3] += 1
+        #     features[9:11] = map_history([self.history[-1], D])
+        #     features[11:13] = map_history([opponent.history[-1], C])
+        #     features[-2] += 1  # (D, C)
+        #     X = np.array([features])
+        #     retaliation_prob = self.model.predict_proba(X, verbose=False)
+        #     if retaliation_prob < 0.10:
+        #         return D
+        #     # If not then retaliate
+        #     else:
+        #         return C
+        # else:
+        #     # If cooperation isn't likely and we can't defect without
+        #     # retaliation, then defect
+        #     return D
+
+        if coop_prob > 0.:
+            return C
         else:
-            # If cooperation isn't likely and we can't defect without
-            # retaliation, then defect
             return D
 
         def reset(self):

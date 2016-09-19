@@ -12,7 +12,7 @@ def process_data(filename, outfilename):
         for line in yield_data(filename):
             writer.writerow(line)
 
-def interactions_generator(player, opponents=None, repetitions=100, noise=0.01,
+def interactions_generator(player, opponents=None, repetitions=100, noise=0,
                            turns=200):
     if not opponents:
         opponents = [s() for s in axl.strategies]
@@ -31,7 +31,7 @@ def write_interactions(interactions_gen, filename):
             writer.writerow(row)
 
 def create_interactions(s=""):
-    g = interactions_generator(axl.KNN(), repetitions=100)
+    g = interactions_generator(axl.KNN(), repetitions=200)
     filename = "/ssd/raw_train_extra.csv{}".format(s)
     write_interactions(g, filename)
     outfilename = "/ssd/train_extra.csv{}".format(s)
